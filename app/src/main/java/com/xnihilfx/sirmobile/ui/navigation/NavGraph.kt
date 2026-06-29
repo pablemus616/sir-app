@@ -1,5 +1,10 @@
 package com.xnihilfx.sirmobile.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavType
@@ -21,7 +26,22 @@ import com.xnihilfx.sirmobile.ui.opportunities.OpportunitiesScreen
 @Composable
 fun SirNavGraph(startRoute: String) {
     val nav = rememberNavController()
-    NavHost(navController = nav, startDestination = startRoute) {
+    NavHost(
+        navController = nav,
+        startDestination = startRoute,
+        enterTransition = {
+            slideInHorizontally(tween(280)) { it / 6 } + fadeIn(tween(280))
+        },
+        exitTransition = {
+            fadeOut(tween(180))
+        },
+        popEnterTransition = {
+            fadeIn(tween(220))
+        },
+        popExitTransition = {
+            slideOutHorizontally(tween(260)) { it / 6 } + fadeOut(tween(220))
+        },
+    ) {
         composable(Route.Login.path) {
             LoginScreen(
                 onAuthenticated = {
