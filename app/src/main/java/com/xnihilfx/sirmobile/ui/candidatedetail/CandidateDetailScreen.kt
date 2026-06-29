@@ -1,5 +1,6 @@
 package com.xnihilfx.sirmobile.ui.candidatedetail
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,8 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -97,91 +97,90 @@ fun CandidateDetailScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(paddingValues),
         ) {
-            when {
-                state.loading && state.candidate == null -> {
-                    LoadingView()
-                }
-
-                state.error != null && state.candidate == null -> {
-                    ErrorView(
-                        message = state.error!!,
+            val contentKey = when {
+                state.loading && state.candidate == null -> "loading"
+                state.error != null && state.candidate == null -> "error"
+                else -> "content"
+            }
+            Crossfade(targetState = contentKey, label = "detail_content") { key ->
+                when (key) {
+                    "loading" -> LoadingView()
+                    "error" -> ErrorView(
+                        message = state.error ?: "Error",
                         onRetry = viewModel::load,
                     )
-                }
-
-                else -> {
-                    LazyColumn(
+                    else -> LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                    // Encabezado del candidato
-                    item {
-                        state.candidate?.let { candidate ->
-                            CandidateHeader(candidate = candidate)
-                        }
-                    }
-
-                    // Botones de acción
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                onClick = { onLogContact(candidateId, opportunityId) },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Registrar contacto")
-                            }
-                            OutlinedButton(
-                                onClick = { onMoveStage(candidateId, opportunityId) },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Mover etapa")
-                            }
-                        }
-                    }
-
-                    item {
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Historial de contactos",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
-                    if (state.contacts.isEmpty() && !state.loading) {
+                        // Encabezado del candidato
                         item {
-                            EmptyView(
-                                text = "Sin contactos aún",
-                                modifier = Modifier.height(120.dp),
-                            )
+                            state.candidate?.let { candidate ->
+                                CandidateHeader(candidate = candidate)
+                            }
                         }
-                    } else {
-                        items(state.contacts, key = { it.id }) { contact ->
-                            ContactHistoryRow(contact = contact)
-                        }
-                    }
 
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                        // Botones de acción
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Button(
+                                    onClick = { onLogContact(candidateId, opportunityId) },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text("Registrar contacto")
+                                }
+                                OutlinedButton(
+                                    onClick = { onMoveStage(candidateId, opportunityId) },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text("Mover etapa")
+                                }
+                            }
+                        }
+
+                        item {
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Historial de contactos",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+
+                        if (state.contacts.isEmpty() && !state.loading) {
+                            item {
+                                EmptyView(
+                                    text = "Sin contactos aún",
+                                    modifier = Modifier.height(120.dp),
+                                )
+                            }
+                        } else {
+                            items(state.contacts, key = { it.id }) { contact ->
+                                ContactHistoryRow(
+                                    contact = contact,
+                                    modifier = Modifier.animateItem(),
+                                )
+                            }
+                        }
+
+                        item { Spacer(modifier = Modifier.height(16.dp)) }
+                    }
                 }
             }
-        }
         }
     }
 }
 
 @Composable
 private fun CandidateHeader(candidate: CandidateDto) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = candidate.fullName,
@@ -245,11 +244,8 @@ private fun CandidateHeader(candidate: CandidateDto) {
 }
 
 @Composable
-private fun ContactHistoryRow(contact: CandidateContactDto) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
+private fun ContactHistoryRow(contact: CandidateContactDto, modifier: Modifier = Modifier) {
+    ElevatedCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

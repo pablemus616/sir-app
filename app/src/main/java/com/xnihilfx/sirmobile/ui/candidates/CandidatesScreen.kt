@@ -1,6 +1,6 @@
 package com.xnihilfx.sirmobile.ui.candidates
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,9 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.xnihilfx.sirmobile.ui.components.PressableCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -135,15 +134,21 @@ fun CandidatesScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                when {
-                    state.loading -> LoadingView()
-                    state.error != null && state.items.isEmpty() -> ErrorView(
-                        message = state.error!!,
-                        onRetry = viewModel::load,
-                    )
-                    state.items.isEmpty() -> EmptyView(text = "Sin candidatos encontrados")
-                    else -> {
-                        LazyColumn(
+                val contentKey = when {
+                    state.loading -> "loading"
+                    state.error != null && state.items.isEmpty() -> "error"
+                    state.items.isEmpty() -> "empty"
+                    else -> "content"
+                }
+                Crossfade(targetState = contentKey, label = "cand_content") { key ->
+                    when (key) {
+                        "loading" -> LoadingView()
+                        "error" -> ErrorView(
+                            message = state.error ?: "Error",
+                            onRetry = viewModel::load,
+                        )
+                        "empty" -> EmptyView(text = "Sin candidatos encontrados")
+                        else -> LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
@@ -151,6 +156,7 @@ fun CandidatesScreen(
                                 CandidateCard(
                                     candidate = candidate,
                                     onClick = { onCandidateClick(candidate.id) },
+                                    modifier = Modifier.animateItem(),
                                 )
                             }
                             item { Spacer(modifier = Modifier.height(72.dp)) } // espacio para el FAB
@@ -166,12 +172,11 @@ fun CandidatesScreen(
 private fun CandidateCard(
     candidate: CandidateDto,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    PressableCard(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(

@@ -1,6 +1,6 @@
 package com.xnihilfx.sirmobile.ui.opportunities
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,12 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.LogOut
 import compose.icons.feathericons.Plus
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.xnihilfx.sirmobile.ui.components.PressableCard
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -121,15 +120,21 @@ fun OpportunitiesScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                when {
-                    state.loading -> LoadingView()
-                    state.error != null && state.items.isEmpty() -> ErrorView(
-                        message = state.error!!,
-                        onRetry = viewModel::load,
-                    )
-                    state.filteredItems.isEmpty() -> EmptyView(text = "Sin puestos abiertos")
-                    else -> {
-                        LazyColumn(
+                val contentKey = when {
+                    state.loading -> "loading"
+                    state.error != null && state.items.isEmpty() -> "error"
+                    state.filteredItems.isEmpty() -> "empty"
+                    else -> "content"
+                }
+                Crossfade(targetState = contentKey, label = "opp_content") { key ->
+                    when (key) {
+                        "loading" -> LoadingView()
+                        "error" -> ErrorView(
+                            message = state.error ?: "Error",
+                            onRetry = viewModel::load,
+                        )
+                        "empty" -> EmptyView(text = "Sin puestos abiertos")
+                        else -> LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
@@ -137,6 +142,7 @@ fun OpportunitiesScreen(
                                 OpportunityCard(
                                     opportunity = opp,
                                     onClick = { onOpportunityClick(opp.id) },
+                                    modifier = Modifier.animateItem(),
                                 )
                             }
                             item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -152,12 +158,11 @@ fun OpportunitiesScreen(
 private fun OpportunityCard(
     opportunity: OpportunityDto,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    PressableCard(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
