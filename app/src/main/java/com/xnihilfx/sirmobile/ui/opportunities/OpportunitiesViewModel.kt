@@ -19,6 +19,7 @@ import javax.inject.Inject
 
 data class OpportunitiesUiState(
     val loading: Boolean = false,
+    val refreshing: Boolean = false,
     val items: List<OpportunityDto> = emptyList(),
     val mineOnly: Boolean = false,
     val query: String = "",
@@ -65,6 +66,23 @@ class OpportunitiesViewModel @Inject constructor(
                 .onFailure { e ->
                     val msg = e.toUserMessage(json)
                     _state.update { it.copy(loading = false, error = msg) }
+                    _events.trySend(OpportunitiesEvent.Error(msg))
+                }
+        }
+    }
+
+    fun refresh() {
+        val mineOnly = _state.value.mineOnly
+        val employeeId = auth.employeeId()
+        _state.update { it.copy(refreshing = true, error = null) }
+        viewModelScope.launch {
+            runCatching { repo.openOpportunities(mineOnly, employeeId) }
+                .onSuccess { items ->
+                    _state.update { it.copy(refreshing = false, items = items) }
+                }
+                .onFailure { e ->
+                    val msg = e.toUserMessage(json)
+                    _state.update { it.copy(refreshing = false, error = msg) }
                     _events.trySend(OpportunitiesEvent.Error(msg))
                 }
         }

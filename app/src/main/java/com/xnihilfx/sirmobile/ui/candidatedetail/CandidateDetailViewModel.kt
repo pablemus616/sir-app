@@ -22,6 +22,7 @@ import javax.inject.Inject
 
 data class CandidateDetailUiState(
     val loading: Boolean = false,
+    val refreshing: Boolean = false,
     val candidate: CandidateDto? = null,
     val contacts: List<CandidateContactDto> = emptyList(),
     val error: String? = null,
@@ -65,6 +66,23 @@ class CandidateDetailViewModel @Inject constructor(
             }.onFailure { e ->
                 val msg = e.toUserMessage(json)
                 _state.update { it.copy(loading = false, error = msg) }
+                _events.trySend(CandidateDetailEvent.Error(msg))
+            }
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _state.update { it.copy(refreshing = true, error = null) }
+            runCatching {
+                val candidate = candidatesRepo.get(candidateId)
+                val contacts = contactsRepo.historyFor(candidateId)
+                candidate to contacts
+            }.onSuccess { (candidate, contacts) ->
+                _state.update { it.copy(refreshing = false, candidate = candidate, contacts = contacts) }
+            }.onFailure { e ->
+                val msg = e.toUserMessage(json)
+                _state.update { it.copy(refreshing = false, error = msg) }
                 _events.trySend(CandidateDetailEvent.Error(msg))
             }
         }

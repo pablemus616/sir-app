@@ -25,6 +25,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -91,27 +92,30 @@ fun CandidateDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        when {
-            state.loading && state.candidate == null -> {
-                LoadingView(modifier = Modifier.padding(paddingValues))
-            }
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.padding(paddingValues),
+        ) {
+            when {
+                state.loading && state.candidate == null -> {
+                    LoadingView()
+                }
 
-            state.error != null && state.candidate == null -> {
-                ErrorView(
-                    message = state.error!!,
-                    onRetry = viewModel::load,
-                    modifier = Modifier.padding(paddingValues),
-                )
-            }
+                state.error != null && state.candidate == null -> {
+                    ErrorView(
+                        message = state.error!!,
+                        onRetry = viewModel::load,
+                    )
+                }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                     // Encabezado del candidato
                     item {
                         state.candidate?.let { candidate ->
@@ -167,6 +171,7 @@ fun CandidateDetailScreen(
                     item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
+        }
         }
     }
 }

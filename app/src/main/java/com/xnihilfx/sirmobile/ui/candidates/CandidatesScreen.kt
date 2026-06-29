@@ -26,6 +26,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,68 +88,73 @@ fun CandidatesScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.padding(paddingValues),
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Campo de búsqueda
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = viewModel::onQuery,
-                label = { Text("Buscar candidato") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Filtros de estado (opcional)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
             ) {
-                FilterChip(
-                    selected = state.status == null,
-                    onClick = { viewModel.onStatus(null) },
-                    label = { Text("Todos") },
-                )
-                FilterChip(
-                    selected = state.status == "active",
-                    onClick = { viewModel.onStatus(if (state.status == "active") null else "active") },
-                    label = { Text("Activos") },
-                )
-                FilterChip(
-                    selected = state.status == "new",
-                    onClick = { viewModel.onStatus(if (state.status == "new") null else "new") },
-                    label = { Text("Nuevos") },
-                )
-            }
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            when {
-                state.loading -> LoadingView()
-                state.error != null && state.items.isEmpty() -> ErrorView(
-                    message = state.error!!,
-                    onRetry = viewModel::load,
+                // Campo de búsqueda
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQuery,
+                    label = { Text("Buscar candidato") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                state.items.isEmpty() -> EmptyView(text = "Sin candidatos encontrados")
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(state.items, key = { it.id }) { candidate ->
-                            CandidateCard(
-                                candidate = candidate,
-                                onClick = { onCandidateClick(candidate.id) },
-                            )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Filtros de estado (opcional)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = state.status == null,
+                        onClick = { viewModel.onStatus(null) },
+                        label = { Text("Todos") },
+                    )
+                    FilterChip(
+                        selected = state.status == "active",
+                        onClick = { viewModel.onStatus(if (state.status == "active") null else "active") },
+                        label = { Text("Activos") },
+                    )
+                    FilterChip(
+                        selected = state.status == "new",
+                        onClick = { viewModel.onStatus(if (state.status == "new") null else "new") },
+                        label = { Text("Nuevos") },
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                when {
+                    state.loading -> LoadingView()
+                    state.error != null && state.items.isEmpty() -> ErrorView(
+                        message = state.error!!,
+                        onRetry = viewModel::load,
+                    )
+                    state.items.isEmpty() -> EmptyView(text = "Sin candidatos encontrados")
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(state.items, key = { it.id }) { candidate ->
+                                CandidateCard(
+                                    candidate = candidate,
+                                    onClick = { onCandidateClick(candidate.id) },
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(72.dp)) } // espacio para el FAB
                         }
-                        item { Spacer(modifier = Modifier.height(72.dp)) } // espacio para el FAB
                     }
                 }
             }

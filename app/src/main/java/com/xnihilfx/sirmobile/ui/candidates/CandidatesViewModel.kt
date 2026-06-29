@@ -26,6 +26,7 @@ import javax.inject.Inject
 
 data class CandidatesUiState(
     val loading: Boolean = false,
+    val refreshing: Boolean = false,
     val query: String = "",
     val status: String? = null,
     val items: List<CandidateDto> = emptyList(),
@@ -113,6 +114,25 @@ class CandidatesViewModel @Inject constructor(
             }.onFailure { e ->
                 val msg = e.toUserMessage(json)
                 _state.update { it.copy(loading = false, error = msg) }
+                _events.trySend(CandidatesEvent.Error(msg))
+            }
+        }
+    }
+
+    fun refresh() {
+        val current = _state.value
+        viewModelScope.launch {
+            _state.update { it.copy(refreshing = true, error = null) }
+            runCatching {
+                repo.search(
+                    name = current.query.takeIf { it.isNotBlank() },
+                    status = current.status,
+                )
+            }.onSuccess { items ->
+                _state.update { it.copy(refreshing = false, items = items) }
+            }.onFailure { e ->
+                val msg = e.toUserMessage(json)
+                _state.update { it.copy(refreshing = false, error = msg) }
                 _events.trySend(CandidatesEvent.Error(msg))
             }
         }

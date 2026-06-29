@@ -27,6 +27,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,55 +77,60 @@ fun OpportunitiesScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.padding(paddingValues),
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+            ) {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Filtro "mis puestos"
-            Row(modifier = Modifier.fillMaxWidth()) {
-                FilterChip(
-                    selected = state.mineOnly,
-                    onClick = { viewModel.onMineOnly(!state.mineOnly) },
-                    label = { Text("Mis puestos") },
+                // Filtro "mis puestos"
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    FilterChip(
+                        selected = state.mineOnly,
+                        onClick = { viewModel.onMineOnly(!state.mineOnly) },
+                        label = { Text("Mis puestos") },
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Campo de búsqueda
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQuery,
+                    label = { Text("Buscar por puesto o cliente") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Campo de búsqueda
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = viewModel::onQuery,
-                label = { Text("Buscar por puesto o cliente") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            when {
-                state.loading -> LoadingView()
-                state.error != null && state.items.isEmpty() -> ErrorView(
-                    message = state.error!!,
-                    onRetry = viewModel::load,
-                )
-                state.filteredItems.isEmpty() -> EmptyView(text = "Sin puestos abiertos")
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(state.filteredItems, key = { it.id }) { opp ->
-                            OpportunityCard(
-                                opportunity = opp,
-                                onClick = { onOpportunityClick(opp.id) },
-                            )
+                when {
+                    state.loading -> LoadingView()
+                    state.error != null && state.items.isEmpty() -> ErrorView(
+                        message = state.error!!,
+                        onRetry = viewModel::load,
+                    )
+                    state.filteredItems.isEmpty() -> EmptyView(text = "Sin puestos abiertos")
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(state.filteredItems, key = { it.id }) { opp ->
+                                OpportunityCard(
+                                    opportunity = opp,
+                                    onClick = { onOpportunityClick(opp.id) },
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(8.dp)) }
                         }
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
                 }
             }
