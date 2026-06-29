@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +53,8 @@ import com.xnihilfx.sirmobile.ui.components.ErrorView
 import com.xnihilfx.sirmobile.ui.components.LoadingView
 import com.xnihilfx.sirmobile.util.CallLogReader
 import com.xnihilfx.sirmobile.util.ContactIntents
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -75,16 +78,34 @@ fun LogContactScreen(
         }
     }
 
+    val scope = rememberCoroutineScope()
     // Bandera transitoria: indica que el usuario marcó y está "en llamada".
     var callInProgress by remember { mutableStateOf(false) }
+    // Hora (epoch ms) en que se pulsó "Llamar"; acota la búsqueda del call log a esta llamada.
+    var dialStartMs by remember { mutableStateOf(0L) }
 
-    // Al volver a la pantalla (ON_RESUME) tras una llamada, intentamos leer la duración.
+    // Al volver a la pantalla (ON_RESUME) tras una llamada, leemos la duración.
+    // El sistema telefónico escribe la fila con DURATION=0 y la actualiza ~1-2s
+    // después de colgar, por eso encuestamos el call log con reintentos (~6s)
+    // hasta obtener un valor > 0 (o lo último visto, editable manualmente).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         if (callInProgress) {
             callInProgress = false
             if (callLogPermission.status.isGranted) {
-                val duration = CallLogReader.lastCallDuration(context, state.pendingCallNumber)
-                viewModel.onReturnFromCall(duration)
+                val number = state.pendingCallNumber
+                val since = dialStartMs
+                scope.launch {
+                    var dur: Int? = null
+                    var i = 0
+                    while (i < 12) {
+                        val d = CallLogReader.lastCallDuration(context, number, since)
+                        if (d != null) dur = d
+                        if (d != null && d > 0) break
+                        delay(500)
+                        i++
+                    }
+                    viewModel.onReturnFromCall(dur)
+                }
             }
         }
     }
@@ -218,6 +239,7 @@ fun LogContactScreen(
                                     if (phone != null) {
                                         OutlinedButton(onClick = {
                                             viewModel.pickShortcut("call")
+                                            dialStartMs = System.currentTimeMillis()
                                             ContactIntents.dial(context, phone)
                                             callInProgress = true
                                         }) { Text("Llamar") }

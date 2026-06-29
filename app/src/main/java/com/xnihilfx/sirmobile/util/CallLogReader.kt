@@ -10,18 +10,21 @@ import android.provider.CallLog
 object CallLogReader {
     /**
      * Devuelve la duración (en segundos) de la llamada más reciente al [number]
-     * dentro de los últimos [withinMs] milisegundos, o null si no se encuentra
-     * o el permiso fue denegado.
+     * registrada a partir de [sinceMs] (epoch ms, normalmente la hora en que se
+     * marcó), o null si todavía no hay una entrada o el permiso fue denegado.
+     *
+     * Nota: el sistema telefónico escribe la fila del call log con DURATION=0 al
+     * iniciar y la actualiza ~1-2s después de colgar; por eso el llamador debe
+     * encuestar este método con reintentos hasta obtener un valor > 0.
      */
-    fun lastCallDuration(context: Context, number: String?, withinMs: Long = 60 * 60 * 1000): Int? {
+    fun lastCallDuration(context: Context, number: String?, sinceMs: Long): Int? {
         return try {
-            val since = System.currentTimeMillis() - withinMs
             val proj = arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DURATION, CallLog.Calls.DATE)
             context.contentResolver.query(
                 CallLog.Calls.CONTENT_URI,
                 proj,
                 "${CallLog.Calls.DATE} >= ?",
-                arrayOf(since.toString()),
+                arrayOf(sinceMs.toString()),
                 "${CallLog.Calls.DATE} DESC",
             )?.use { c ->
                 val digits = number?.filter { it.isDigit() }?.takeLast(8)
