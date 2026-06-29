@@ -1,6 +1,7 @@
 package com.xnihilfx.sirmobile.data.repository
 
 import com.xnihilfx.sirmobile.data.remote.OpportunitiesApi
+import com.xnihilfx.sirmobile.data.remote.dto.CreateOpportunityRequest
 import com.xnihilfx.sirmobile.data.remote.dto.OpportunityDto
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,4 +15,7 @@ class OpportunitiesRepository @Inject constructor(private val api: Opportunities
             page = 1,
             limit = 100,
         ).data?.items.orEmpty()
+
+    suspend fun create(req: CreateOpportunityRequest): OpportunityDto =
+        api.create(req).data ?: error("Respuesta inválida al crear vacante")
 }

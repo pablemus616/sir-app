@@ -15,8 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.LogOut
+import compose.icons.feathericons.Plus
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +49,7 @@ import com.xnihilfx.sirmobile.ui.components.LoadingView
 fun OpportunitiesScreen(
     onOpportunityClick: (oppId: Int) -> Unit,
     onLogout: () -> Unit,
+    onNewOpportunity: () -> Unit,
     viewModel: OpportunitiesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -76,6 +79,13 @@ fun OpportunitiesScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNewOpportunity,
+                icon = { Icon(imageVector = FeatherIcons.Plus, contentDescription = null) },
+                text = { Text("Nueva vacante") },
+            )
+        },
     ) { paddingValues ->
         PullToRefreshBox(
             isRefreshing = state.refreshing,

@@ -25,6 +25,17 @@ data class PipelineStageDto(
 )
 
 @Serializable
+data class CreateOpportunityRequest(
+    val clientId: Int,
+    val responsibleEmployeeId: Int,
+    val pipelineStageId: Int,
+    val title: String? = null,
+    val areaId: Int? = null,
+    val headcount: Int? = null,
+    val seniority: String? = null,
+)
+
+@Serializable
 data class OpportunityDto(
     val id: Int,
     val title: String? = null,

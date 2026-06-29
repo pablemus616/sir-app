@@ -21,6 +21,7 @@ import com.xnihilfx.sirmobile.ui.candidates.NewCandidateScreen
 import com.xnihilfx.sirmobile.ui.login.LoginScreen
 import com.xnihilfx.sirmobile.ui.logcontact.LogContactScreen
 import com.xnihilfx.sirmobile.ui.movestage.MoveStageScreen
+import com.xnihilfx.sirmobile.ui.newopportunity.NewOpportunityScreen
 import com.xnihilfx.sirmobile.ui.opportunities.OpportunitiesScreen
 
 @Composable
@@ -61,6 +62,17 @@ fun SirNavGraph(startRoute: String) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onNewOpportunity = {
+                    nav.navigate(Route.NewOpportunity.path)
+                },
+            )
+        }
+        composable(Route.NewOpportunity.path) {
+            NewOpportunityScreen(
+                onCreated = {
+                    nav.popBackStack()
+                },
+                onBack = { nav.popBackStack() },
             )
         }
         composable(

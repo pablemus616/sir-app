@@ -37,4 +37,5 @@ sealed class Route(val path: String) {
         const val ARG_CAND = "candidateId"; const val ARG_OPP = "opportunityId"
         fun build(candidateId: Int, opportunityId: Int) = "moveStage/$candidateId/$opportunityId"
     }
+    data object NewOpportunity : Route("newOpportunity")
 }
