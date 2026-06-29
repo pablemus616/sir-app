@@ -90,7 +90,7 @@ class LogContactViewModel @Inject constructor(
         loadTypes()
     }
 
-    private fun loadTypes() {
+    fun loadTypes() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true) }
             runCatching { contactTypesRepo.all() }

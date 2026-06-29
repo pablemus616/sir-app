@@ -82,7 +82,7 @@ fun LogContactScreen(
             state.loading && state.types.isEmpty() -> LoadingView(modifier = Modifier.padding(paddingValues))
             state.error != null && state.types.isEmpty() -> ErrorView(
                 message = state.error.orEmpty(),
-                onRetry = { /* No hay función de recarga expuesta; el usuario puede volver y reintentar */ },
+                onRetry = viewModel::loadTypes,
                 modifier = Modifier.padding(paddingValues),
             )
             else -> {
