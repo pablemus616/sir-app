@@ -9,7 +9,8 @@ class AuthInterceptor @Inject constructor(private val session: SessionStore) : I
     override fun intercept(chain: Interceptor.Chain): Response {
         val req = chain.request()
         val token = session.accessToken
-        if (token == null || req.header("Authorization") != null || req.url.encodedPath.contains("auth/")) {
+        val path = req.url.encodedPath
+        if (token == null || req.header("Authorization") != null || path.endsWith("auth/login") || path.endsWith("auth/refresh")) {
             return chain.proceed(req)
         }
         return chain.proceed(req.newBuilder().header("Authorization", "Bearer $token").build())

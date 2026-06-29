@@ -42,6 +42,12 @@ class AuthRepositoryTest {
 
         repo.login("ana", "pw")
 
+        // Verify /auth/me received a Bearer token (interceptor must not skip auth sub-routes)
+        server.takeRequest() // login request — no token expected
+        val meReq = server.takeRequest() // me request — must have Bearer
+        assertNotNull(meReq.getHeader("Authorization"))
+        assertTrue(meReq.getHeader("Authorization")!!.startsWith("Bearer "))
+
         assertEquals("A", session.accessToken)
         assertEquals(12, session.employeeId)
         assertEquals("Ana López", session.displayName)

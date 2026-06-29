@@ -13,6 +13,7 @@ class TokenAuthenticator @Inject constructor(
     private val json: Json,
     private val baseUrl: String,
 ) : Authenticator {
+    private val refreshClient = OkHttpClient()
     @Synchronized override fun authenticate(route: Route?, response: Response): Request? {
         if (responseCount(response) >= 2) return null            // already retried once
         val current = session.accessToken
@@ -29,10 +30,9 @@ class TokenAuthenticator @Inject constructor(
     }
 
     private fun refreshBlocking(refreshToken: String): com.xnihilfx.sirmobile.data.remote.dto.AuthTokens {
-        val client = OkHttpClient()
         val body = """{"refreshToken":"$refreshToken"}""".toRequestBody("application/json".toMediaType())
         val req = Request.Builder().url(baseUrl.trimEnd('/') + "/auth/refresh").post(body).build()
-        client.newCall(req).execute().use { r ->
+        refreshClient.newCall(req).execute().use { r ->
             val text = r.body?.string().orEmpty()
             require(r.isSuccessful) { "refresh failed ${r.code}" }
             val env = json.decodeFromString<ApiEnvelope<com.xnihilfx.sirmobile.data.remote.dto.AuthTokens>>(text)
