@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.xnihilfx.sirmobile.ui.candidatedetail.CandidateDetailScreen
 import com.xnihilfx.sirmobile.ui.candidates.CandidatesScreen
 import com.xnihilfx.sirmobile.ui.candidates.NewCandidateScreen
 import com.xnihilfx.sirmobile.ui.login.LoginScreen
@@ -63,6 +64,23 @@ fun SirNavGraph(startRoute: String) {
                 onBack = { nav.popBackStack() },
             )
         }
-        // CandidateDetail, LogContact, MoveStage — agregados en sus tareas
+        composable(
+            route = Route.CandidateDetail.path,
+            arguments = listOf(
+                navArgument(Route.CandidateDetail.ARG_CAND) { type = NavType.IntType },
+                navArgument(Route.CandidateDetail.ARG_OPP) { type = NavType.IntType; defaultValue = -1 },
+            ),
+        ) { backStackEntry ->
+            val candId = backStackEntry.arguments?.getInt(Route.CandidateDetail.ARG_CAND) ?: -1
+            val oppId = backStackEntry.arguments?.getInt(Route.CandidateDetail.ARG_OPP) ?: -1
+            CandidateDetailScreen(
+                candidateId = candId,
+                opportunityId = oppId,
+                onLogContact = { c, o -> nav.navigate(Route.LogContact.build(c, o)) },
+                onMoveStage = { c, o -> nav.navigate(Route.MoveStage.build(c, o)) },
+                onBack = { nav.popBackStack() },
+            )
+        }
+        // LogContact, MoveStage — agregados en sus tareas
     }
 }
