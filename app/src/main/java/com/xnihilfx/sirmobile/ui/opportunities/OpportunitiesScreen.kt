@@ -1,6 +1,12 @@
 package com.xnihilfx.sirmobile.ui.opportunities
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +38,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,8 +61,10 @@ fun OpportunitiesScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var fabVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        fabVisible = true
         viewModel.events.collect { event ->
             when (event) {
                 is OpportunitiesEvent.Error -> snackbarHostState.showSnackbar(event.message)
@@ -79,11 +89,17 @@ fun OpportunitiesScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNewOpportunity,
-                icon = { Icon(imageVector = FeatherIcons.Plus, contentDescription = null) },
-                text = { Text("Nueva vacante") },
-            )
+            AnimatedVisibility(
+                visible = fabVisible,
+                enter = scaleIn(tween(250)) + fadeIn(tween(250)),
+                exit = scaleOut(tween(200)) + fadeOut(tween(200)),
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = onNewOpportunity,
+                    icon = { Icon(imageVector = FeatherIcons.Plus, contentDescription = null) },
+                    text = { Text("Nueva vacante") },
+                )
+            }
         },
     ) { paddingValues ->
         PullToRefreshBox(

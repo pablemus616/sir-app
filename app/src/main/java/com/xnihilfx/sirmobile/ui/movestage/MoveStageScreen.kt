@@ -1,5 +1,11 @@
 package com.xnihilfx.sirmobile.ui.movestage
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -72,18 +77,28 @@ fun MoveStageScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        when {
-            state.loading -> LoadingView(modifier = Modifier.padding(paddingValues))
+        val contentKey = when {
+            state.loading -> 0
+            state.error != null && state.application == null -> 1
+            state.application == null -> 2
+            else -> 3
+        }
+        AnimatedContent(
+            targetState = contentKey,
+            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(150)) },
+            label = "move_content",
+        ) { key ->
+            when (key) {
+                0 -> LoadingView(modifier = Modifier.padding(paddingValues))
 
-            state.error != null && state.application == null -> ErrorView(
-                message = state.error!!,
-                onRetry = viewModel::load,
-                modifier = Modifier.padding(paddingValues),
-            )
+                1 -> ErrorView(
+                    message = state.error.orEmpty(),
+                    onRetry = viewModel::load,
+                    modifier = Modifier.padding(paddingValues),
+                )
 
-            // No existe aplicación todavía → ofrecer crearla
-            state.application == null -> {
-                Column(
+                // No existe aplicación todavía → ofrecer crearla
+                2 -> Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -106,101 +121,109 @@ fun MoveStageScreen(
                         enabled = !state.saving,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        if (state.saving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Text("Crear aplicación")
-                    }
-                }
-            }
-
-            // Existe aplicación → mostrar etapa actual y posibles siguientes
-            else -> {
-                val app = state.application!!
-                val currentLabel = ApplicationStages.label(app.stage)
-                val isTerminal = state.legalNext.isEmpty()
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Etapa actual",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = currentLabel,
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                    }
-
-                    if (isTerminal) {
-                        item {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            EmptyView(text = "Esta etapa es terminal. No hay más movimientos posibles.")
-                        }
-                    } else {
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Mover a:",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        items(state.legalNext) { nextStage ->
-                            val isNegative = nextStage == "rejected" || nextStage == "withdrawn"
-                            if (isNegative) {
-                                OutlinedButton(
-                                    onClick = { viewModel.move(nextStage) },
-                                    enabled = !state.saving,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error,
-                                    ),
-                                ) {
-                                    if (state.saving) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(16.dp),
-                                            strokeWidth = 2.dp,
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                    }
-                                    Text(ApplicationStages.label(nextStage))
-                                }
+                        Crossfade(targetState = state.saving, label = "create_app") { saving ->
+                            if (saving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
                             } else {
-                                Button(
-                                    onClick = { viewModel.move(nextStage) },
-                                    enabled = !state.saving,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    if (state.saving) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(16.dp),
-                                            strokeWidth = 2.dp,
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                    }
-                                    Text(ApplicationStages.label(nextStage))
-                                }
+                                Text("Crear aplicación")
                             }
                         }
+                    }
+                }
 
-                        item { Spacer(modifier = Modifier.height(16.dp)) }
+                // Existe aplicación → mostrar etapa actual y posibles siguientes
+                else -> {
+                    val app = state.application
+                    if (app != null) {
+                        val currentLabel = ApplicationStages.label(app.stage)
+                        val isTerminal = state.legalNext.isEmpty()
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            item {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Etapa actual",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = currentLabel,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                )
+                            }
+
+                            if (isTerminal) {
+                                item {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    EmptyView(text = "Esta etapa es terminal. No hay más movimientos posibles.")
+                                }
+                            } else {
+                                item {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Mover a:",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+
+                                items(state.legalNext) { nextStage ->
+                                    val isNegative = nextStage == "rejected" || nextStage == "withdrawn"
+                                    if (isNegative) {
+                                        OutlinedButton(
+                                            onClick = { viewModel.move(nextStage) },
+                                            enabled = !state.saving,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error,
+                                            ),
+                                        ) {
+                                            Crossfade(targetState = state.saving, label = "move_neg") { saving ->
+                                                if (saving) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(16.dp),
+                                                        strokeWidth = 2.dp,
+                                                    )
+                                                } else {
+                                                    Text(ApplicationStages.label(nextStage))
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        Button(
+                                            onClick = { viewModel.move(nextStage) },
+                                            enabled = !state.saving,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Crossfade(targetState = state.saving, label = "move_pos") { saving ->
+                                                if (saving) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(16.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = MaterialTheme.colorScheme.onPrimary,
+                                                    )
+                                                } else {
+                                                    Text(ApplicationStages.label(nextStage))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                item { Spacer(modifier = Modifier.height(16.dp)) }
+                            }
+                        }
                     }
                 }
             }

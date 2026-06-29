@@ -1,6 +1,12 @@
 package com.xnihilfx.sirmobile.ui.newopportunity
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -10,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -47,7 +52,6 @@ import compose.icons.FeatherIcons
 import compose.icons.feathericons.ArrowLeft
 import compose.icons.feathericons.Minus
 import compose.icons.feathericons.Plus
-import com.xnihilfx.sirmobile.ui.components.EmptyView
 import com.xnihilfx.sirmobile.ui.components.ErrorView
 import com.xnihilfx.sirmobile.ui.components.LoadingView
 
@@ -91,115 +95,139 @@ fun NewOpportunityScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        when {
-            state.loading -> LoadingView(modifier = Modifier.padding(paddingValues))
-            state.error != null && state.clients.isEmpty() -> ErrorView(
-                message = state.error!!,
-                onRetry = viewModel::loadCatalogs,
-                modifier = Modifier.padding(paddingValues),
-            )
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Cliente (required)
-                    ClientDropdown(
-                        clients = state.clients,
-                        selectedClientId = state.clientId,
-                        onClientSelected = viewModel::onClientId,
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Título (optional)
-                    OutlinedTextField(
-                        value = state.title,
-                        onValueChange = viewModel::onTitle,
-                        label = { Text("Título (opcional)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Área (optional)
-                    if (state.areas.isNotEmpty()) {
-                        AreaDropdown(
-                            areas = state.areas,
-                            selectedAreaId = state.areaId,
-                            onAreaSelected = viewModel::onAreaId,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    // Headcount stepper
-                    Text(
-                        text = "Vacantes",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        val contentKey = when {
+            state.loading -> 0
+            state.error != null && state.clients.isEmpty() -> 1
+            else -> 2
+        }
+        AnimatedContent(
+            targetState = contentKey,
+            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(150)) },
+            label = "new_opp_content",
+        ) { key ->
+            when (key) {
+                0 -> LoadingView(modifier = Modifier.padding(paddingValues))
+                1 -> ErrorView(
+                    message = state.error.orEmpty(),
+                    onRetry = viewModel::loadCatalogs,
+                    modifier = Modifier.padding(paddingValues),
+                )
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 16.dp)
+                            .verticalScroll(rememberScrollState()),
                     ) {
-                        IconButton(
-                            onClick = { viewModel.onHeadcount(state.headcount - 1) },
-                            enabled = state.headcount > 1,
-                        ) {
-                            Icon(imageVector = FeatherIcons.Minus, contentDescription = "Reducir")
-                        }
-                        Text(
-                            text = state.headcount.toString(),
-                            style = MaterialTheme.typography.titleMedium,
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Cliente (required)
+                        ClientDropdown(
+                            clients = state.clients,
+                            selectedClientId = state.clientId,
+                            onClientSelected = viewModel::onClientId,
                         )
-                        IconButton(onClick = { viewModel.onHeadcount(state.headcount + 1) }) {
-                            Icon(imageVector = FeatherIcons.Plus, contentDescription = "Aumentar")
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    // Seniority chips (optional)
-                    Text(
-                        text = "Seniority (opcional)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        seniorityOptions.forEach { option ->
-                            FilterChip(
-                                selected = state.seniority == option,
-                                onClick = {
-                                    viewModel.onSeniority(if (state.seniority == option) null else option)
-                                },
-                                label = { Text(seniorityLabels[option] ?: option) },
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    if (state.saving) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                    } else {
-                        Button(
-                            onClick = viewModel::submit,
-                            enabled = state.clientId != null,
+                        // Título (optional)
+                        OutlinedTextField(
+                            value = state.title,
+                            onValueChange = viewModel::onTitle,
+                            label = { Text("Título (opcional)") },
+                            singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Guardar vacante")
-                        }
-                    }
+                        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Área (optional)
+                        if (state.areas.isNotEmpty()) {
+                            AreaDropdown(
+                                areas = state.areas,
+                                selectedAreaId = state.areaId,
+                                onAreaSelected = viewModel::onAreaId,
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Headcount stepper
+                        Text(
+                            text = "Vacantes",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            IconButton(
+                                onClick = { viewModel.onHeadcount(state.headcount - 1) },
+                                enabled = state.headcount > 1,
+                            ) {
+                                Icon(imageVector = FeatherIcons.Minus, contentDescription = "Reducir")
+                            }
+                            Text(
+                                text = state.headcount.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            IconButton(onClick = { viewModel.onHeadcount(state.headcount + 1) }) {
+                                Icon(imageVector = FeatherIcons.Plus, contentDescription = "Aumentar")
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Seniority chips (optional)
+                        Text(
+                            text = "Seniority (opcional)",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            seniorityOptions.forEach { option ->
+                                FilterChip(
+                                    selected = state.seniority == option,
+                                    onClick = {
+                                        viewModel.onSeniority(if (state.seniority == option) null else option)
+                                    },
+                                    label = { Text(seniorityLabels[option] ?: option) },
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Save button animated between spinner and button
+                        AnimatedContent(
+                            targetState = state.saving,
+                            transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(100)) },
+                            label = "new_opp_save",
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { saving ->
+                            if (saving) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            } else {
+                                Button(
+                                    onClick = viewModel::submit,
+                                    enabled = state.clientId != null,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Guardar vacante")
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
         }

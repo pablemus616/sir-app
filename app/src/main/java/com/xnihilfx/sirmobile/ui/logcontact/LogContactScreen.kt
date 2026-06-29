@@ -1,6 +1,12 @@
 package com.xnihilfx.sirmobile.ui.logcontact
 
 import android.Manifest
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -135,151 +140,164 @@ fun LogContactScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        when {
-            state.loading && state.types.isEmpty() -> LoadingView(modifier = Modifier.padding(paddingValues))
-            state.error != null && state.types.isEmpty() -> ErrorView(
-                message = state.error.orEmpty(),
-                onRetry = viewModel::loadTypes,
-                modifier = Modifier.padding(paddingValues),
-            )
-            else -> {
-                val callType = state.types.find { it.name == "call" }
+        val contentKey = when {
+            state.loading && state.types.isEmpty() -> 0
+            state.error != null && state.types.isEmpty() -> 1
+            else -> 2
+        }
+        AnimatedContent(
+            targetState = contentKey,
+            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(150)) },
+            label = "log_content",
+        ) { key ->
+            when (key) {
+                0 -> LoadingView(modifier = Modifier.padding(paddingValues))
+                1 -> ErrorView(
+                    message = state.error.orEmpty(),
+                    onRetry = viewModel::loadTypes,
+                    modifier = Modifier.padding(paddingValues),
+                )
+                else -> {
+                    val callType = state.types.find { it.name == "call" }
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    // Tipo de contacto
-                    item {
-                        Column {
-                            Text(
-                                text = "Tipo de contacto",
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            ) {
-                                state.types.forEach { type ->
-                                    FilterChip(
-                                        selected = state.selectedTypeId == type.id,
-                                        onClick = { viewModel.onTypeSelected(type.id) },
-                                        label = { Text(contactTypeLabel(type.name)) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Dirección (entrante / saliente)
-                    item {
-                        Column {
-                            Text(
-                                text = "Dirección",
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
-                                    selected = state.direction == "outbound",
-                                    onClick = { viewModel.onDirection("outbound") },
-                                    label = { Text("Saliente") },
-                                )
-                                FilterChip(
-                                    selected = state.direction == "inbound",
-                                    onClick = { viewModel.onDirection("inbound") },
-                                    label = { Text("Entrante") },
-                                )
-                            }
-                        }
-                    }
-
-                    // Duración de la llamada en segundos (solo si el tipo es "call")
-                    if (state.selectedTypeId == callType?.id) {
-                        item {
-                            OutlinedTextField(
-                                value = state.callLength?.toString() ?: "",
-                                onValueChange = { v -> viewModel.setCallLength(v.toIntOrNull()) },
-                                label = { Text("Duración (s)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                supportingText = {
-                                    Text("Autocompletado desde el registro de llamadas; editable manualmente.")
-                                },
-                            )
-                        }
-                    }
-
-                    // Notas
-                    item {
-                        OutlinedTextField(
-                            value = state.notes,
-                            onValueChange = viewModel::onNotes,
-                            label = { Text("Notas") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                        )
-                    }
-
-                    // Accesos rápidos (Llamar / WhatsApp / Email)
-                    val phone = state.candidatePhone
-                    val email = state.candidateEmail
-                    if (phone != null || email != null) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        // Tipo de contacto
                         item {
                             Column {
                                 Text(
-                                    text = "Accesos rápidos",
+                                    text = "Tipo de contacto",
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                ) {
+                                    state.types.forEach { type ->
+                                        FilterChip(
+                                            selected = state.selectedTypeId == type.id,
+                                            onClick = { viewModel.onTypeSelected(type.id) },
+                                            label = { Text(contactTypeLabel(type.name)) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Dirección (entrante / saliente)
+                        item {
+                            Column {
+                                Text(
+                                    text = "Dirección",
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (phone != null) {
-                                        OutlinedButton(onClick = {
-                                            viewModel.pickShortcut("call")
-                                            dialStartMs = System.currentTimeMillis()
-                                            ContactIntents.dial(context, phone)
-                                            callInProgress = true
-                                        }) { Text("Llamar") }
+                                    FilterChip(
+                                        selected = state.direction == "outbound",
+                                        onClick = { viewModel.onDirection("outbound") },
+                                        label = { Text("Saliente") },
+                                    )
+                                    FilterChip(
+                                        selected = state.direction == "inbound",
+                                        onClick = { viewModel.onDirection("inbound") },
+                                        label = { Text("Entrante") },
+                                    )
+                                }
+                            }
+                        }
 
-                                        OutlinedButton(onClick = {
-                                            viewModel.pickShortcut("whatsapp")
-                                            ContactIntents.whatsapp(context, phone)
-                                        }) { Text("WhatsApp") }
-                                    }
-                                    if (email != null) {
-                                        OutlinedButton(onClick = {
-                                            viewModel.pickShortcut("email")
-                                            ContactIntents.email(context, email)
-                                        }) { Text("Email") }
+                        // Duración de la llamada en segundos (solo si el tipo es "call")
+                        if (state.selectedTypeId == callType?.id) {
+                            item {
+                                OutlinedTextField(
+                                    value = state.callLength?.toString() ?: "",
+                                    onValueChange = { v -> viewModel.setCallLength(v.toIntOrNull()) },
+                                    label = { Text("Duración (s)") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    supportingText = {
+                                        Text("Autocompletado desde el registro de llamadas; editable manualmente.")
+                                    },
+                                )
+                            }
+                        }
+
+                        // Notas
+                        item {
+                            OutlinedTextField(
+                                value = state.notes,
+                                onValueChange = viewModel::onNotes,
+                                label = { Text("Notas") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 3,
+                            )
+                        }
+
+                        // Accesos rápidos (Llamar / WhatsApp / Email)
+                        val phone = state.candidatePhone
+                        val email = state.candidateEmail
+                        if (phone != null || email != null) {
+                            item {
+                                Column {
+                                    Text(
+                                        text = "Accesos rápidos",
+                                        style = MaterialTheme.typography.labelLarge,
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        if (phone != null) {
+                                            OutlinedButton(onClick = {
+                                                viewModel.pickShortcut("call")
+                                                dialStartMs = System.currentTimeMillis()
+                                                ContactIntents.dial(context, phone)
+                                                callInProgress = true
+                                            }) { Text("Llamar") }
+
+                                            OutlinedButton(onClick = {
+                                                viewModel.pickShortcut("whatsapp")
+                                                ContactIntents.whatsapp(context, phone)
+                                            }) { Text("WhatsApp") }
+                                        }
+                                        if (email != null) {
+                                            OutlinedButton(onClick = {
+                                                viewModel.pickShortcut("email")
+                                                ContactIntents.email(context, email)
+                                            }) { Text("Email") }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // Botón Guardar
-                    item {
-                        Button(
-                            onClick = viewModel::submit,
-                            enabled = !state.saving,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            if (state.saving) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                        // Botón Guardar
+                        item {
+                            Button(
+                                onClick = viewModel::submit,
+                                enabled = !state.saving,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Crossfade(targetState = state.saving, label = "log_save") { saving ->
+                                    if (saving) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                    } else {
+                                        Text("Guardar")
+                                    }
+                                }
                             }
-                            Text("Guardar")
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }

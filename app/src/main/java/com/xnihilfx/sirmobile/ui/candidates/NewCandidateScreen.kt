@@ -1,5 +1,11 @@
 package com.xnihilfx.sirmobile.ui.candidates
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -125,14 +131,27 @@ fun NewCandidateScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (state.saving) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            } else {
-                Button(
-                    onClick = viewModel::submit,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Guardar candidato")
+            // Save button animated between spinner and button
+            AnimatedContent(
+                targetState = state.saving,
+                transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(100)) },
+                label = "new_cand_save",
+                modifier = Modifier.fillMaxWidth(),
+            ) { saving ->
+                if (saving) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    Button(
+                        onClick = viewModel::submit,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Guardar candidato")
+                    }
                 }
             }
 
