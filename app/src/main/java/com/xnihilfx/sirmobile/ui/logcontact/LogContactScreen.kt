@@ -92,20 +92,22 @@ fun LogContactScreen(
         if (callInProgress) {
             callInProgress = false
             if (callLogPermission.status.isGranted) {
-                val number = state.pendingCallNumber
-                val since = dialStartMs
+                val since = dialStartMs - 3000L
                 scope.launch {
                     var dur: Int? = null
                     var i = 0
-                    while (i < 12) {
-                        val d = CallLogReader.lastCallDuration(context, number, since)
+                    while (i < 20) {
+                        val d = CallLogReader.lastCallDuration(context, since)
                         if (d != null) dur = d
                         if (d != null && d > 0) break
                         delay(500)
                         i++
                     }
+                    android.util.Log.d(CallLogReader.TAG, "duración final=$dur tras ${i * 500}ms de espera")
                     viewModel.onReturnFromCall(dur)
                 }
+            } else {
+                android.util.Log.w(CallLogReader.TAG, "permiso READ_CALL_LOG no concedido al volver")
             }
         }
     }
