@@ -35,6 +35,8 @@ data class LogContactUiState(
     val candidatePhone: String? = null,
     /** Email del candidato para los accesos rápidos (cargado desde ruta). */
     val candidateEmail: String? = null,
+    /** Número marcado en el atajo de llamada (para buscar en el call log al volver). */
+    val pendingCallNumber: String? = null,
 )
 
 sealed interface LogContactEvent {
@@ -109,7 +111,45 @@ class LogContactViewModel @Inject constructor(
     fun onDirection(dir: String) = _state.update { it.copy(direction = dir) }
     fun onNotes(notes: String) = _state.update { it.copy(notes = notes) }
     fun onCallLength(minutes: Int?) = _state.update { it.copy(callLength = minutes) }
+    fun setCallLength(v: Int?) = _state.update { it.copy(callLength = v) }
     fun onPhoneDialed(phone: String?) = _state.update { it.copy(phoneDialed = phone) }
+
+    /**
+     * Atajo rápido de contacto. Selecciona automáticamente el tipo de contacto
+     * cuyo nombre coincide con [kind] ("call", "whatsapp", "email") y configura
+     * los campos relacionados.
+     */
+    fun pickShortcut(kind: String) {
+        val type = _state.value.types.find { it.name == kind }
+        _state.update { s ->
+            when (kind) {
+                "call" -> s.copy(
+                    selectedTypeId = type?.id,
+                    pendingCallNumber = s.candidatePhone,
+                    phoneDialed = s.candidatePhone,
+                    direction = "outbound",
+                )
+                "whatsapp" -> s.copy(
+                    selectedTypeId = type?.id,
+                    phoneDialed = s.candidatePhone,
+                    direction = "outbound",
+                )
+                "email" -> s.copy(selectedTypeId = type?.id)
+                else -> s.copy(selectedTypeId = type?.id)
+            }
+        }
+    }
+
+    /**
+     * Llamado cuando el usuario regresa a la pantalla tras una llamada.
+     * Si [durationSeconds] no es nulo, actualiza la duración automáticamente
+     * desde el call log; de lo contrario deja el valor actual (para edición manual).
+     */
+    fun onReturnFromCall(durationSeconds: Int?) {
+        if (durationSeconds != null) {
+            _state.update { it.copy(callLength = durationSeconds) }
+        }
+    }
 
     fun submit() {
         val s = _state.value

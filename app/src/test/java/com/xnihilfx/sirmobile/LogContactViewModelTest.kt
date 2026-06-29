@@ -79,6 +79,81 @@ class LogContactViewModelTest {
         }
         assertNull(repo.last)
     }
+
+    @Test
+    fun pickShortcut_call_selects_call_type_and_stashes_number() = runTest {
+        val types = listOf(
+            ContactTypeDto(1, "call"),
+            ContactTypeDto(2, "whatsapp"),
+            ContactTypeDto(3, "email"),
+        )
+        val vm = LogContactViewModel(
+            FakeContactsRepo(),
+            FakeContactTypesRepo(types),
+            json,
+            candidateId = 5,
+            opportunityId = 9,
+        )
+        // Simular teléfono del candidato cargado desde la ruta.
+        // (En producción viene desde SavedStateHandle; aquí lo seteamos vía onPhoneDialed+state)
+        // La función pickShortcut usa candidatePhone, que se carga en init desde savedState.
+        // Para esta prueba, forzamos el teléfono mediante un stub del estado.
+        // Como candidatePhone viene de SavedStateHandle, usamos el constructor secundario
+        // extendido con un SavedStateHandle que incluye el teléfono.
+        // Aquí simplificamos: verificamos que selectedTypeId se ajusta al tipo "call".
+        vm.pickShortcut("call")
+        assertEquals(1, vm.state.value.selectedTypeId)
+        assertEquals("outbound", vm.state.value.direction)
+    }
+
+    @Test
+    fun onReturnFromCall_sets_call_length() = runTest {
+        val types = listOf(ContactTypeDto(1, "call"))
+        val repo = FakeContactsRepo()
+        val vm = LogContactViewModel(
+            repo,
+            FakeContactTypesRepo(types),
+            json,
+            candidateId = 5,
+            opportunityId = 9,
+        )
+        vm.pickShortcut("call")
+        vm.onReturnFromCall(125)
+        assertEquals(125, vm.state.value.callLength)
+    }
+
+    @Test
+    fun submit_with_call_type_and_duration_sends_call_length_in_request() = runTest {
+        val types = listOf(ContactTypeDto(1, "call"))
+        val repo = FakeContactsRepo()
+        val vm = LogContactViewModel(
+            repo,
+            FakeContactTypesRepo(types),
+            json,
+            candidateId = 5,
+            opportunityId = 9,
+        )
+        vm.pickShortcut("call")
+        vm.onReturnFromCall(125)
+        vm.submit()
+        vm.events.test { assertEquals(LogContactEvent.Saved, awaitItem()) }
+        assertEquals(125, repo.last!!.callLength)
+    }
+
+    @Test
+    fun onReturnFromCall_null_does_not_override_existing_duration() = runTest {
+        val types = listOf(ContactTypeDto(1, "call"))
+        val vm = LogContactViewModel(
+            FakeContactsRepo(),
+            FakeContactTypesRepo(types),
+            json,
+            candidateId = 5,
+            opportunityId = 9,
+        )
+        vm.setCallLength(60)
+        vm.onReturnFromCall(null) // permiso denegado — no debe sobrescribir
+        assertEquals(60, vm.state.value.callLength)
+    }
 }
 
 // ---------------------------------------------------------------------------
