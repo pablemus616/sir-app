@@ -95,7 +95,7 @@ fun NewOpportunityScreen(
             state.loading -> LoadingView(modifier = Modifier.padding(paddingValues))
             state.error != null && state.clients.isEmpty() -> ErrorView(
                 message = state.error!!,
-                onRetry = {},
+                onRetry = viewModel::loadCatalogs,
                 modifier = Modifier.padding(paddingValues),
             )
             else -> {

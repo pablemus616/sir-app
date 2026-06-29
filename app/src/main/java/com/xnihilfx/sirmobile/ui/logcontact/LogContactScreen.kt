@@ -67,6 +67,14 @@ fun LogContactScreen(
     // Permiso de lectura del log de llamadas (solicitado en tiempo de ejecución).
     val callLogPermission = rememberPermissionState(Manifest.permission.READ_CALL_LOG)
 
+    // Solicitar permiso READ_CALL_LOG proactivamente al cargar la pantalla,
+    // para que ya esté resuelto antes de que el usuario pulse "Llamar".
+    LaunchedEffect(Unit) {
+        if (!callLogPermission.status.isGranted) {
+            callLogPermission.launchPermissionRequest()
+        }
+    }
+
     // Bandera transitoria: indica que el usuario marcó y está "en llamada".
     var callInProgress by remember { mutableStateOf(false) }
 
@@ -211,10 +219,6 @@ fun LogContactScreen(
                                         OutlinedButton(onClick = {
                                             viewModel.pickShortcut("call")
                                             ContactIntents.dial(context, phone)
-                                            // Solicitar permiso READ_CALL_LOG para capturar duración al volver.
-                                            if (!callLogPermission.status.isGranted) {
-                                                callLogPermission.launchPermissionRequest()
-                                            }
                                             callInProgress = true
                                         }) { Text("Llamar") }
 

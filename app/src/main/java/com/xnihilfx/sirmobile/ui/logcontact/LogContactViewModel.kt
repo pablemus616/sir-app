@@ -110,7 +110,6 @@ class LogContactViewModel @Inject constructor(
     fun onTypeSelected(typeId: Int) = _state.update { it.copy(selectedTypeId = typeId) }
     fun onDirection(dir: String) = _state.update { it.copy(direction = dir) }
     fun onNotes(notes: String) = _state.update { it.copy(notes = notes) }
-    fun onCallLength(minutes: Int?) = _state.update { it.copy(callLength = minutes) }
     fun setCallLength(v: Int?) = _state.update { it.copy(callLength = v) }
     fun onPhoneDialed(phone: String?) = _state.update { it.copy(phoneDialed = phone) }
 
@@ -167,7 +166,7 @@ class LogContactViewModel @Inject constructor(
                         contactType = s.selectedTypeId,
                         contactTime = Instant.now().toString(),
                         direction = s.direction.ifBlank { null },
-                        callLength = s.callLength,
+                        callLength = if (s.types.find { it.id == s.selectedTypeId }?.name == "call") s.callLength else null,
                         contactDesc = s.notes.ifBlank { null },
                         phoneNumberDialed = s.phoneDialed?.ifBlank { null },
                     ),

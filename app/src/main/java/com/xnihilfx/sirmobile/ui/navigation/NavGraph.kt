@@ -23,6 +23,7 @@ import com.xnihilfx.sirmobile.ui.logcontact.LogContactScreen
 import com.xnihilfx.sirmobile.ui.movestage.MoveStageScreen
 import com.xnihilfx.sirmobile.ui.newopportunity.NewOpportunityScreen
 import com.xnihilfx.sirmobile.ui.opportunities.OpportunitiesScreen
+import com.xnihilfx.sirmobile.ui.opportunities.OpportunitiesViewModel
 
 @Composable
 fun SirNavGraph(startRoute: String) {
@@ -68,8 +69,10 @@ fun SirNavGraph(startRoute: String) {
             )
         }
         composable(Route.NewOpportunity.path) {
+            val oppsVm: OpportunitiesViewModel = hiltViewModel(nav.getBackStackEntry(Route.Opportunities.path))
             NewOpportunityScreen(
                 onCreated = {
+                    oppsVm.refresh()
                     nav.popBackStack()
                 },
                 onBack = { nav.popBackStack() },

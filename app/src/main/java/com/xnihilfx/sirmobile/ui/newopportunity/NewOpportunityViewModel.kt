@@ -60,7 +60,7 @@ class NewOpportunityViewModel @Inject constructor(
 
     init { loadCatalogs() }
 
-    private fun loadCatalogs() {
+    fun loadCatalogs() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             runCatching {

@@ -145,7 +145,7 @@ fun OpportunitiesScreen(
                                     modifier = Modifier.animateItem(),
                                 )
                             }
-                            item { Spacer(modifier = Modifier.height(8.dp)) }
+                            item { Spacer(modifier = Modifier.height(80.dp)) }
                         }
                     }
                 }
