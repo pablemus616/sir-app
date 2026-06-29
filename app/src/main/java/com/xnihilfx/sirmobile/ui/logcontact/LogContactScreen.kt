@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.ArrowLeft
+import com.xnihilfx.sirmobile.ui.components.ErrorView
 import com.xnihilfx.sirmobile.ui.components.LoadingView
 import com.xnihilfx.sirmobile.util.ContactIntents
 
@@ -77,9 +78,14 @@ fun LogContactScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        if (state.loading && state.types.isEmpty()) {
-            LoadingView(modifier = Modifier.padding(paddingValues))
-        } else {
+        when {
+            state.loading && state.types.isEmpty() -> LoadingView(modifier = Modifier.padding(paddingValues))
+            state.error != null && state.types.isEmpty() -> ErrorView(
+                message = state.error.orEmpty(),
+                onRetry = { /* No hay función de recarga expuesta; el usuario puede volver y reintentar */ },
+                modifier = Modifier.padding(paddingValues),
+            )
+            else -> {
             val callType = state.types.find { it.name == "call" }
             val whatsappType = state.types.find { it.name == "whatsapp" }
             val emailType = state.types.find { it.name == "email" }
@@ -222,6 +228,7 @@ fun LogContactScreen(
             }
         }
     }
+}
 }
 
 private fun contactTypeLabel(name: String): String = when (name) {
