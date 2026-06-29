@@ -5,6 +5,7 @@ import com.xnihilfx.sirmobile.BuildConfig
 import com.xnihilfx.sirmobile.data.local.SessionStore
 import com.xnihilfx.sirmobile.data.remote.AuthApi
 import com.xnihilfx.sirmobile.data.remote.AuthInterceptor
+import com.xnihilfx.sirmobile.data.remote.CandidatesApi
 import com.xnihilfx.sirmobile.data.remote.OpportunitiesApi
 import com.xnihilfx.sirmobile.data.remote.TokenAuthenticator
 import dagger.Module; import dagger.Provides; import dagger.hilt.InstallIn
@@ -41,4 +42,5 @@ object NetworkModule {
             .build()
     @Provides @Singleton fun authApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
     @Provides @Singleton fun opportunitiesApi(retrofit: Retrofit): OpportunitiesApi = retrofit.create(OpportunitiesApi::class.java)
+    @Provides @Singleton fun candidatesApi(retrofit: Retrofit): CandidatesApi = retrofit.create(CandidatesApi::class.java)
 }
