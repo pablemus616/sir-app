@@ -20,3 +20,15 @@ data class CandidateContactDto(
     val recruiter: EmployeeDto? = null,
     val createdAt: String? = null,
 )
+
+@Serializable
+data class CreateCandidateContactRequest(
+    val candidateId: Int,
+    val opportunityId: Int,
+    val contactType: Int,
+    val contactTime: String,
+    val direction: String? = null,
+    val callLength: Int? = null,
+    val contactDesc: String? = null,
+    val phoneNumberDialed: String? = null,
+)

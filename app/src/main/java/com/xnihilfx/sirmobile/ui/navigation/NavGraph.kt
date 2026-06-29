@@ -1,15 +1,20 @@
 package com.xnihilfx.sirmobile.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.xnihilfx.sirmobile.ui.candidatedetail.CandidateDetailScreen
+import com.xnihilfx.sirmobile.ui.candidatedetail.CandidateDetailViewModel
 import com.xnihilfx.sirmobile.ui.candidates.CandidatesScreen
 import com.xnihilfx.sirmobile.ui.candidates.NewCandidateScreen
 import com.xnihilfx.sirmobile.ui.login.LoginScreen
+import com.xnihilfx.sirmobile.ui.logcontact.LogContactScreen
 import com.xnihilfx.sirmobile.ui.opportunities.OpportunitiesScreen
 
 @Composable
@@ -73,14 +78,50 @@ fun SirNavGraph(startRoute: String) {
         ) { backStackEntry ->
             val candId = backStackEntry.arguments?.getInt(Route.CandidateDetail.ARG_CAND) ?: -1
             val oppId = backStackEntry.arguments?.getInt(Route.CandidateDetail.ARG_OPP) ?: -1
+            // Elevamos el ViewModel para poder leer el teléfono/email del candidato
+            // al navegar a LogContact (accesos rápidos de contacto).
+            val detailVm: CandidateDetailViewModel = hiltViewModel()
+            val detailState by detailVm.state.collectAsStateWithLifecycle()
             CandidateDetailScreen(
                 candidateId = candId,
                 opportunityId = oppId,
-                onLogContact = { c, o -> nav.navigate(Route.LogContact.build(c, o)) },
+                onLogContact = { c, o ->
+                    nav.navigate(
+                        Route.LogContact.build(
+                            candidateId = c,
+                            opportunityId = o,
+                            phone = detailState.candidate?.phoneNumber,
+                            email = detailState.candidate?.email,
+                        ),
+                    )
+                },
                 onMoveStage = { c, o -> nav.navigate(Route.MoveStage.build(c, o)) },
+                onBack = { nav.popBackStack() },
+                viewModel = detailVm,
+            )
+        }
+        composable(
+            route = Route.LogContact.path,
+            arguments = listOf(
+                navArgument(Route.LogContact.ARG_CAND) { type = NavType.IntType },
+                navArgument(Route.LogContact.ARG_OPP) { type = NavType.IntType },
+                navArgument(Route.LogContact.ARG_PHONE) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(Route.LogContact.ARG_EMAIL) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) {
+            LogContactScreen(
+                onSaved = { nav.popBackStack() },
                 onBack = { nav.popBackStack() },
             )
         }
-        // LogContact, MoveStage — agregados en sus tareas
+        // MoveStage — agregado en la Tarea 11
     }
 }

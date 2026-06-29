@@ -1,0 +1,233 @@
+package com.xnihilfx.sirmobile.ui.logcontact
+
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.ArrowLeft
+import com.xnihilfx.sirmobile.ui.components.LoadingView
+import com.xnihilfx.sirmobile.util.ContactIntents
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LogContactScreen(
+    onSaved: () -> Unit,
+    onBack: () -> Unit,
+    viewModel: LogContactViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Eventos de un solo disparo
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is LogContactEvent.Saved -> onSaved()
+                is LogContactEvent.Error -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Registrar contacto") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(FeatherIcons.ArrowLeft, contentDescription = "Regresar")
+                    }
+                },
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { paddingValues ->
+        if (state.loading && state.types.isEmpty()) {
+            LoadingView(modifier = Modifier.padding(paddingValues))
+        } else {
+            val callType = state.types.find { it.name == "call" }
+            val whatsappType = state.types.find { it.name == "whatsapp" }
+            val emailType = state.types.find { it.name == "email" }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // Tipo de contacto
+                item {
+                    Column {
+                        Text(
+                            text = "Tipo de contacto",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        ) {
+                            state.types.forEach { type ->
+                                FilterChip(
+                                    selected = state.selectedTypeId == type.id,
+                                    onClick = { viewModel.onTypeSelected(type.id) },
+                                    label = { Text(contactTypeLabel(type.name)) },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Dirección (entrante / saliente)
+                item {
+                    Column {
+                        Text(
+                            text = "Dirección",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = state.direction == "outbound",
+                                onClick = { viewModel.onDirection("outbound") },
+                                label = { Text("Saliente") },
+                            )
+                            FilterChip(
+                                selected = state.direction == "inbound",
+                                onClick = { viewModel.onDirection("inbound") },
+                                label = { Text("Entrante") },
+                            )
+                        }
+                    }
+                }
+
+                // Duración de la llamada (solo si el tipo es "call")
+                if (state.selectedTypeId == callType?.id) {
+                    item {
+                        OutlinedTextField(
+                            value = state.callLength?.toString() ?: "",
+                            onValueChange = { v -> viewModel.onCallLength(v.toIntOrNull()) },
+                            label = { Text("Duración (minutos)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                    }
+                }
+
+                // Notas
+                item {
+                    OutlinedTextField(
+                        value = state.notes,
+                        onValueChange = viewModel::onNotes,
+                        label = { Text("Notas") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3,
+                    )
+                }
+
+                // Accesos rápidos (Llamar / WhatsApp / Email)
+                val phone = state.candidatePhone
+                val email = state.candidateEmail
+                if (phone != null || email != null) {
+                    item {
+                        Column {
+                            Text(
+                                text = "Accesos rápidos",
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (phone != null) {
+                                    OutlinedButton(onClick = {
+                                        ContactIntents.dial(context, phone)
+                                        callType?.let { viewModel.onTypeSelected(it.id) }
+                                        viewModel.onPhoneDialed(phone)
+                                        viewModel.onDirection("outbound")
+                                    }) { Text("Llamar") }
+
+                                    OutlinedButton(onClick = {
+                                        ContactIntents.whatsapp(context, phone)
+                                        whatsappType?.let { viewModel.onTypeSelected(it.id) }
+                                        viewModel.onPhoneDialed(phone)
+                                        viewModel.onDirection("outbound")
+                                    }) { Text("WhatsApp") }
+                                }
+                                if (email != null) {
+                                    OutlinedButton(onClick = {
+                                        ContactIntents.email(context, email)
+                                        emailType?.let { viewModel.onTypeSelected(it.id) }
+                                    }) { Text("Email") }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Botón Guardar
+                item {
+                    Button(
+                        onClick = viewModel::submit,
+                        enabled = !state.saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (state.saving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("Guardar")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+private fun contactTypeLabel(name: String): String = when (name) {
+    "call" -> "Llamada"
+    "email" -> "Email"
+    "meeting" -> "Reunión"
+    "whatsapp" -> "WhatsApp"
+    else -> name
+}
