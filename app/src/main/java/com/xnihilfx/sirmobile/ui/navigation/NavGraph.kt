@@ -15,6 +15,7 @@ import com.xnihilfx.sirmobile.ui.candidates.CandidatesScreen
 import com.xnihilfx.sirmobile.ui.candidates.NewCandidateScreen
 import com.xnihilfx.sirmobile.ui.login.LoginScreen
 import com.xnihilfx.sirmobile.ui.logcontact.LogContactScreen
+import com.xnihilfx.sirmobile.ui.movestage.MoveStageScreen
 import com.xnihilfx.sirmobile.ui.opportunities.OpportunitiesScreen
 
 @Composable
@@ -122,6 +123,18 @@ fun SirNavGraph(startRoute: String) {
                 onBack = { nav.popBackStack() },
             )
         }
-        // MoveStage — agregado en la Tarea 11
+        // MoveStage — Tarea 11
+        composable(
+            route = Route.MoveStage.path,
+            arguments = listOf(
+                navArgument(Route.MoveStage.ARG_CAND) { type = NavType.IntType },
+                navArgument(Route.MoveStage.ARG_OPP) { type = NavType.IntType },
+            ),
+        ) {
+            MoveStageScreen(
+                onDone = { nav.popBackStack() },
+                onBack = { nav.popBackStack() },
+            )
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.xnihilfx.sirmobile.di
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.xnihilfx.sirmobile.BuildConfig
 import com.xnihilfx.sirmobile.data.local.SessionStore
+import com.xnihilfx.sirmobile.data.remote.ApplicationsApi
 import com.xnihilfx.sirmobile.data.remote.AuthApi
 import com.xnihilfx.sirmobile.data.remote.AuthInterceptor
 import com.xnihilfx.sirmobile.data.remote.CandidateContactsApi
@@ -47,4 +48,5 @@ object NetworkModule {
     @Provides @Singleton fun candidatesApi(retrofit: Retrofit): CandidatesApi = retrofit.create(CandidatesApi::class.java)
     @Provides @Singleton fun candidateContactsApi(retrofit: Retrofit): CandidateContactsApi = retrofit.create(CandidateContactsApi::class.java)
     @Provides @Singleton fun contactTypesApi(retrofit: Retrofit): ContactTypesApi = retrofit.create(ContactTypesApi::class.java)
+    @Provides @Singleton fun applicationsApi(retrofit: Retrofit): ApplicationsApi = retrofit.create(ApplicationsApi::class.java)
 }
